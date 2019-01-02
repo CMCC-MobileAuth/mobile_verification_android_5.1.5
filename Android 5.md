@@ -10,13 +10,13 @@ sdk技术问题沟通QQ群：609994083</br>
 
 ## 1.1  总体使用流程
 
-1. 调用SDK方法来获得token，步骤如下：
+a. 调用SDK方法来获得token，步骤如下：
 
    a. 构造SDK中认证工具类AuthnHelper的对象； 
    
    b. 使用AuthnHelper中的umcLoginByType方法，获得token。
    
-2. 携带token通过业务服务端到认证服务端的本机号码校验接口，进行号码校验
+b. 携带token通过业务服务端到认证服务端的本机号码校验接口，进行号码校验
 
 ## 1.2  新建工程并导入SDK的jar文件
 
@@ -54,6 +54,7 @@ public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     mContext = this;    
     mAuthnHelper = AuthnHelper.getInstance(mContext.getApplicationContext());
+    //AuthnHelper初始化
     mAuthnHelper.init(Constant.APP_ID, Constant.APP_KEY);
     //设置是否输出sdk日志
     mAuthnHelper.setDebugMode(true);
@@ -61,7 +62,7 @@ public void onCreate(Bundle savedInstanceState) {
     }
 ```
 
-# 2  实现回调
+## 1.5  实现回调
 
 所有的SDK接口调用，都会传入一个回调，用于接收SDK返回的调用结果。结果以`JsonObject`的形式传递，`TokenListener`的实现示例代码如下：
 
@@ -86,228 +87,94 @@ mListener = new TokenListener() {
 }
 ```
 
-**[5] 混淆策略**
+# 2  SDK方法说明
 
-请避免混淆一键登录SDK，在Proguard混淆文件中增加以下配置：
+## 2.1 获取管理类的实例对象
 
-```java
--dontwarn class com.cmic.sso.sdk.**
--keep class com.cmic.sso.sdk.**{*;}
-```
+### 2.1.1 方法描述
 
-<div STYLE="page-break-after: always;"></div>
+**原型**
 
-## 2.  SDK方法说明
+````
+public static AuthnHelper getInstance(Context context)
+````
 
-## 2.1. 预取号
+### 2.1.2 参数说明
 
-## 2.1.1 方法描述
-使用SDK登录前，可以通过预取号方法提前获取用户信息并缓存。用户使用一键登录时，会优先使用缓存的信息快
-速请求SDK服务端获取 token 和 用户ID(openID) 等信息，提高登录速度。缓存的有效时间是5min并且只能使用一
-次。预取号成功后，如果用户成功进入授权页，但未授权给应用（未点一键登录按钮），并返回到上一级页面，预
-取号缓存将失效，预取号缓存失效后，用户再次使用显式登录时，将使用常规流程获取token信息。
 
-注意：预取号前，开发者需提前申请 READ_PHONE_STATE 权限，否则预取号会失败！
+| 参数      | 类型    |说明    |
+| --------- | ----- |--------------------|
+| context | Context |调用者的上下文环境，其中activity中this即可以代表|
 
-方法调用如下图：
+## 2.2 获取校验凭证token
 
-![](image/2.1.png)
+### 2.2.1 方法描述
 
-原型
+开发者向统一认证服务器获取用户身份标识 openId 和临时凭证 token 。 
 
-```java
-public void umcLoginPre(int umcLoginPreTimeOut, final TokenListener listener)
-```
+token：开发者服务端可凭临时凭证token通过3.1本机号码校验接口对本机号码进行验证。
 
-## 2.1.2 参数说明
+注意：获取token前，开发者需提前申请 READ_PHONE_STATE 权限，否则会失败！
 
-| 参数               | 类型             |说明         |
-| ------------------ | --------- |--------------------|
-| umcLoginPreTimeOut | int      |预取号超时时间        |
-| listener           | TokenListener      |TokenListener为回调监听器，是一个java接口，需要调用者自己实现；TokenListener是接口中的认证登录token回调接口，OnGetTokenComplete是该接口中唯一的抽象方法，即void OnGetTokenComplete(JSONObject  jsonobj)|
+**原型**
 
-响应参数
+````
+public void umcLoginByType(String appId, String appKey, int setTimeOut, TokenListener mlistener)
+````
 
-OnGetTokenComplete的参数JSONObject，含义如下：
-
-| 字段               | 类型      |含义         |
-| ------------------ | --------- |--------------------|
-| resultCode | int      |接口返回码，“103000”为成功。具体返回码见 SDK返回码|
-| desc      | boolean   |成功标识，true为成功           |
-
-## 2.1.3 请求示例代码
-
-```java
-    mAuthnHelper.umcLoginPre(5000, mListener);
-```
-
-响应示例
-
-```java
-    {
-    "resultCode": "103000",
-    "desc": "true",
-    }
-```
-
-## 2.2 隐式登录
-
-## 2.2.1 方法描述
-
-本方法目前只能用于token校验功能。开发者通过隐式登录方法，无授权弹窗，可获取到token和
-openID，应用服务端凭token向SDK服务端请求校验。
-注：隐式登录返回的token用宇校验用户信息。
-
-注意：隐式登录前，开发者需提前申请 READ_PHONE_STATE 权限，否则会失败！
-
-方法调用逻辑
-
-![](image/2.1.png)
-
-原型
-
-```java
-    public void getTokenImp(final String authType, final TokenListener listener);
-```
-
-## 2.2.2 参数说明
+### 2.2.2 参数说明
 
 请求参数
 
 | 参数        | 类型             |说明         |
-| ------------| ---------------- |--------------------|
-| authType    | String              |认证类型        |
-| listener    | TokenListener    |TokenListener为回调监听器，是一个java接口，需要调用者自己实现；TokenListener是接口中的认证登录token回调接口，OnGetTokenComplete是该接口中唯一的抽象方法，即void OnGetTokenComplete(JSONObject  jsonobj)  |
+| ---------- | ------- |--------------------|
+| appId     | String    |应用的AppID        |
+| appkey     | String   |应用密钥          |
+| setTimeOut  | int     |请求服务端超时时间          |
+| listener     |TokenListener  |TokenListener为回调监听器，是一个java接口，需要调用者自己实现；TokenListener是接口中的认证登录token回调接口，OnGetTokenComplete是该接口中唯一的抽象方法，即void OnGetTokenComplete(JSONObject  jsonobj) |
 
 响应参数
 
 OnGetTokenComplete的参数JSONObject，含义如下：
 
-| 字段       | 类型      |含义         |
-| -----------| ---------|--------------------|
-| resultCode | int       |接口返回码，“103000”为成功。具体返回码见 SDK返回码|
-| authType  | Int   |登录类型 |
-| authTypeDes  | String   |登录类型中文描述 |
-| selectSim  | String   |手机sim卡槽标识 |
-| securityphone  | String   |手机加密号码 |
-| openId  | String   |用户身份唯一标识（参数需在开放平台勾选相关能力后开放，如果勾选了一键登录能力，使用本方法时，不返回OpenID） |
-| token  | String   |成功返回:临时凭证，token有效期2min，一次有效，同一用户（手机号）10分钟内获取token且未使用的数量不超过30个 |
+| 字段         | 类型      |含义         |
+| ------------ | --------- |--------------------|
+| resultCode | String  |接口返回码，“103000”为成功。具体响应码见4.1. 本机号码校验接口返回码|
+| resultDesc  | String   |失败时返回：返回错误码说明   |
+| token  | String   |成功时返回：临时凭证，token有效期2min，一次有效，同一用户（手机号）10分钟内获取token且未使用的数量不超过30个  |
 
 ## 2.2.3 示例
 
 请求示例代码
 
-```java
-    mAuthnHelper.getTokenImp(AuthnHelper.AUTH_TYPE_WAP, mListener);
+````
+mAuthnHelper.umcLoginByType(Constant.APP_ID, 
+        Constant.APP_KEY, 12000,
+        mListener)
+````
+
+响应示例
+
 ```
-
-响应示例代码
-
-```java
     {
     "resultCode": "103000",
-    "authType": "2",
-    "authTypeDes": "网关鉴权",
-    "openId": "003JI1Jg1rmApSg6yG0ydUgLWZ4Bnx0rb4wtWLtyDRc0WAWoAUmE",
-    "token": "STsid0000001512438403572hQSEygBwiYc9fIw0vExdI4X3GMkI5UVw",
+    "resultDesc": "success",
+    "token": 
+"8484010001330200374D455979526A49354E6A59774E444D314E454E47516B4D3140687474703A2F2F3231312E31333
+62E31302E3133313A383038302F40303103000402D59A6B040012383030313230313730383138313031343437050010D
+2F28C555CB54316B7D031DE9F6F6B1EFF0020F07B4AAFC3B1499A250AAAB4272BBFB565B440FFA5C8257E90C28595956
+CC224"
     }
 ```
 
-## 2.3 设置取号超时
-
-## 2.3.1 方法描述
-
-设置取号超时时间，默认为8秒，应用在预取号、显式登录、隐式登录阶段时，如果需要更改超时时间，可使用该
-方法配置。
-
-```java
-    public void setTimeOut(int timeOut)
-```
-## 2.3.2 参数说明
-
-请求参数
-
-| 参数        | 类型             |说明         |
-| ------------| ---------------- |--------------------|
-| timeOut    | int              |设置超时时间（单位：毫秒）|
-
-响应参数
-
-无
-
-## 2.4 sim卡快捷登录（可选）
-
-## 2.4.1 方法描述
-
-如果取号失败（登录失败，这个延迟时间开发者可以控制，默认2s），开发者可以选跳转SIM快捷登录页面和短信验证界面（sdk提供调用接口，布局界面由开发者实现）;
-当用户使用快捷登录时，sim盾平台会向手机号对应手机发送指令，该手机会弹窗提示用户是否同意授权登录，选确定后，发送请求的app手机会生成token。
-
-注意：用户确认授权登录至多1分钟等待处理，否则会失败！
-
-方法调用逻辑
-
-![](image/2.4.png)
-
-原型
-
-```java
-    public void simQuickLogin( int delayTime, String phoneNum,  TokenListener listener);
-```
-
-## 2.4.2 参数说明
-
-请求参数
-
-| 参数        | 类型             |说明         |
-| ------------| ---------------- |--------------------|
-| delayTime    | int              |指定超时时间       |
-| phoneNum    | String              |输入授权的手机号       |
-| listener    | TokenListener    |TokenListener为回调监听器，是一个java接口，需要调用者自己实现；TokenListener是接口中的认证登录token回调接口，OnGetTokenComplete是该接口中唯一的抽象方法，即void OnGetTokenComplete(JSONObject  jsonobj)  |
-
-响应参数
-
-OnGetTokenComplete的参数JSONObject，含义如下：
-
-| 字段       | 类型      |含义         |
-| -----------| ---------|--------------------|
-| resultCode | int       |接口返回码，“103000”为成功。具体返回码见 SDK返回码|
-| authType  | Int   |登录类型 |
-| authTypeDes  | String   |登录类型中文描述 |
-| selectSim  | String   |手机sim卡槽标识 |
-| securityphone  | String   |手机加密号码 |
-| openId  | String   |用户身份唯一标识（参数需在开放平台勾选相关能力后开放，如果勾选了一键登录能力，使用本方法时，不返回OpenID） |
-| token  | String   |成功返回:临时凭证，token有效期2min，一次有效，同一用户（手机号）10分钟内获取token且未使用的数量不超过30个 |
-
-## 2.4.3 示例
-
-请求示例代码
-
-```java
-    mAuthnHelper.simQuickLogin(60000,mPhoneNum, mListener);
-```
-
-响应示例代码
-
-```java
-    {
-    "resultCode": "103000",
-    "authType": "8",
-    "authTypeDes": "sim快捷登录",
-    "openId": "003JI1Jg1rmApSg6yG0ydUgLWZ4Bnx0rb4wtWLtyDRc0WAWoAUmE",
-    "token": "STsid0000001512438403572hQSEygBwiYc9fIw0vExdI4X3GMkI5UVw",
-    }
-```
-
-
-
-## 3 平台接口说明
+# 3 平台接口说明
 
 ## 3.1 获取用户信息接口
 
 业务平台或服务端携带用户授权成功后的token来调用统一认证服务端获取用户手机号码等信息。注：本接口仅适
 用于5.3.0及以上版本SDK
 
-## 3.1.1 业务流程
+### 3.1.1 业务流程
 
 SDK在获取token过程中，用户手机必须在打开数据网络情况下才能获取成功，纯wifi环境下会自动跳转到SDK的短
 信验证码页面（如果有配置）或者返回错误码
