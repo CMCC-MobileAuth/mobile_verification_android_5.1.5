@@ -55,19 +55,12 @@ public void onCreate(Bundle savedInstanceState) {
     mContext = this;    
     mAuthnHelper = AuthnHelper.getInstance(mContext.getApplicationContext());
     mAuthnHelper.init(Constant.APP_ID, Constant.APP_KEY);
+    //设置是否输出sdk日志
+    mAuthnHelper.setDebugMode(true);
+    
     }
 ```
 
-**【3】AuthnHelper初始化**
-AuthnHelper 是SDK的功能入口，实例化后需要初始化功能参数：
-```java
-    //设置是否输出sdk日志
-    mAuthnHelper.setDebugMode(true);
-    //设置sdkId和sdkKey
-    mAuthnHelper.init(Constant.APP_ID, Constant.APP_KEY);
-    //设置超时时间，默认8s，时间单位毫秒
-    mAuthnHelper.setTimeOut(12000);
-```
 # 2  实现回调
 
 所有的SDK接口调用，都会传入一个回调，用于接收SDK返回的调用结果。结果以`JsonObject`的形式传递，`TokenListener`的实现示例代码如下：
