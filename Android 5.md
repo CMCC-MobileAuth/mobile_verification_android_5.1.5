@@ -6,67 +6,58 @@ sdk技术问题沟通QQ群：609994083</br>
 
 1. **获取token和取号服务必须打开数据流量并且手机操作系统给予应用数据权限才能使用**
 2. **取号请求过程需要消耗用户少量数据流量**
-3. **认证取号服务目前支持中国移动2/3/4G和中国电信4G**
+3. **认证取号服务目前支持中国移动2/3/4G**
 
-## 1.1. 开发流程
+## 1.1  总体使用流程
 
-**第一步：下载SDK及相关文档**
+1. 调用SDK方法来获得token，步骤如下：
 
-请在群文件中下载最新的sdk及文档。
+   a. 构造SDK中认证工具类AuthnHelper的对象； 
+   
+   b. 使用AuthnHelper中的umcLoginByType方法，获得token。
+   
+2. 携带token通过业务服务端到认证服务端的本机号码校验接口，进行号码校验
 
-**第二步：搭建开发环境**
+## 1.2  新建工程并导入SDK的jar文件
 
 jar包集成方式：
-1. 将 quick_login_android_**.jar 拷贝到应用工程的libs目录下，如没有该目录，可新建;
-2. 将sdk所需要的证书文件 serverPublicKey.pem 拷贝到项目 assets 目录下。
-3. 将sdk所需要的资源文件(anim, drawable, drawable-xxhdpi, layout, values文件，具体可参考demo工程)
 
-**第三步：开始使用移动认证SDK**
+将 `mobile_verification_android_5.1.5.jar` 拷贝到应用工程的libs目录下，如没有该目录，可新建；
 
-**[1] AndroidManifest.xml设置**
+![](image/1.2.png)
+
+## 1.3  配置AndroidManifest
+
+**注意：为避免出错，请直接从Demo中复制带标签的代码**
 
 添加必要的权限支持: 
 
-```java
-oid.permission.INTERNET" />
+```
+   <uses-permission android:name="android.permission.INTERNET" />
    <uses‐permission android:name="android.permission.READ_PHONE_STATE" />
    <uses‐permission android:name="android.permission.ACCESS_WIFI_STATE" />
    <uses‐permission android:name="android.permission.ACCESS_NETWORK_STATE" />
    <uses‐permission android:name="android.permission.CHANGE_NETWORK_STATE" />
 ```
-2. 配置授权登录activity
-若需要配置短信校验获取token，请参考demo中示例配置;
-开发者根据需要配置横竖屏方向: android:screenOrientation ，示列代码为 unspecified (默认值由系统选择 显示方向)
-```java
-    <!‐‐ required ‐‐>
-    <activity android:name=".activity.SMSAuthActivity"
-                     android:configChanges="orientation|keyboardHidden|screenSize"
-                     android:screenOrientation="unspecified"
-                     android:launchMode="singleTop"/>                 
-```
 
-通过以上两个步骤，工程就已经配置完成了。接下来就可以在代码里使用统一认证的SDK进行开发了
-```
+通过以上步骤，工程就已经配置完成了。接下来就可以在代码里使用统一认证的SDK进行开发了
 
-**[2] 创建一个AuthnHelper实例**
 
-`AuthnHelper`是SDK的功能入口，所有的接口调用都得通过AuthnHelper进行调用。因此，调用SDK，首先需要创建一个AuthnHelper实例
+## 1.4 SDK使用步骤
 
-**方法原型：**
+`AuthnHelper`是SDK的功能入口，所有的接口调用都得通过AuthnHelper进行调用。因此，调用SDK，首先需要创建一个AuthnHelper实例，其代码如下：
 
-```java
-public static AuthnHelper getInstance(Context context)
-```
 **示例代码：**
 
-```java
+```
 public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     mContext = this;    
-    ……
-    mAuthnHelper = AuthnHelper.getInstance(mContext);
+    mAuthnHelper = AuthnHelper.getInstance(mContext.getApplicationContext());
+    mAuthnHelper.init(Constant.APP_ID, Constant.APP_KEY);
     }
 ```
+
 **【3】AuthnHelper初始化**
 AuthnHelper 是SDK的功能入口，实例化后需要初始化功能参数：
 ```java
@@ -77,14 +68,20 @@ AuthnHelper 是SDK的功能入口，实例化后需要初始化功能参数：
     //设置超时时间，默认8s，时间单位毫秒
     mAuthnHelper.setTimeOut(12000);
 ```
-**[4] 实现回调**
+# 2  实现回调
 
 所有的SDK接口调用，都会传入一个回调，用于接收SDK返回的调用结果。结果以`JsonObject`的形式传递，`TokenListener`的实现示例代码如下：
 
-```java
+```
 mListener = new TokenListener() {
     @Override
     public void onGetTokenComplete(JSONObject jObj) {
+        try {
+               if (timer != null)
+               timer.cancel();//回调的时候取消定时器
+        } catch (Exception e) {
+               e.printStackTrace();
+        }
         if (jObj != null) {
             mResultString = jObj.toString();
             mHandler.sendEmptyMessage(RESULT);
@@ -93,7 +90,7 @@ mListener = new TokenListener() {
             }
         }
     }
-};
+}
 ```
 
 **[5] 混淆策略**
